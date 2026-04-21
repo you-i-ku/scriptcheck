@@ -397,6 +397,48 @@ input:focus, textarea:focus, select:focus {
 
 .hidden-input { display: none; }
 
+/* ---------- Error boundary ---------- */
+.error-boundary {
+  padding: 40px;
+  max-width: 760px;
+  margin: 40px auto;
+  background: #2a1a1a;
+  border: 1px solid #5a2a2a;
+  border-radius: 6px;
+  color: #f0d0d0;
+}
+.error-boundary h2 { margin-top: 0; color: #ff8888; }
+.error-boundary .err-msg {
+  background: #1a1010;
+  padding: 10px 14px;
+  border-radius: 4px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+  color: #ffbbbb;
+}
+.error-boundary details { margin: 16px 0; }
+.error-boundary summary { cursor: pointer; color: #ccc; margin-bottom: 6px; }
+.error-boundary pre {
+  background: #1a1010;
+  padding: 10px;
+  border-radius: 3px;
+  font-size: 11px;
+  max-height: 240px;
+  overflow: auto;
+  color: #ddd;
+}
+.error-boundary .err-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+.error-boundary .err-hint {
+  font-size: 12px;
+  color: #aaa;
+  margin-top: 16px;
+}
+
 /* ---------- QC Panel ---------- */
 .qc-panel {
   background: #1c1c1c;

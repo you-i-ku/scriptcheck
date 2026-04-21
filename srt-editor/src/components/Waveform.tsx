@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js';
 import type { SrtEntry } from '../types';
@@ -31,7 +31,7 @@ export function Waveform({
   const handlersRef = useRef({ onSeek, onInsertAt, onRegionMove });
   const draggingRef = useRef<string | null>(null);
   const zoomRef = useRef<number>(DEFAULT_PX_PER_SEC);
-  const [scrubDragging, setScrubDragging] = useState(false);
+  const scrubDraggingRef = useRef<number | null>(null); // pointerId
 
   useEffect(() => {
     handlersRef.current = { onSeek, onInsertAt, onRegionMove };
@@ -151,20 +151,6 @@ export function Waveform({
     }
   }, [entries, activeSegmentId, selectedSegmentId, uncovered]);
 
-  // スクラブストリップのマウス操作
-  useEffect(() => {
-    if (!scrubDragging) return;
-    const onMove = (e: MouseEvent) => updateScrub(e.clientX);
-    const onUp = () => setScrubDragging(false);
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    return () => {
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scrubDragging]);
-
   const updateScrub = (clientX: number) => {
     if (!scrubRef.current || !videoEl) return;
     const dur = videoEl.duration;
@@ -198,11 +184,26 @@ export function Waveform({
       <div
         ref={scrubRef}
         className={`scrub-strip${scrubReady ? '' : ' disabled'}`}
-        onMouseDown={(e) => {
+        onPointerDown={(e) => {
           if (!scrubReady) return;
+          if (e.button !== 0) return; // 左クリックのみ
           e.preventDefault();
-          setScrubDragging(true);
+          try { e.currentTarget.setPointerCapture(e.pointerId); } catch { /* ignore */ }
+          scrubDraggingRef.current = e.pointerId;
           updateScrub(e.clientX);
+        }}
+        onPointerMove={(e) => {
+          if (scrubDraggingRef.current !== e.pointerId) return;
+          updateScrub(e.clientX);
+        }}
+        onPointerUp={(e) => {
+          if (scrubDraggingRef.current !== e.pointerId) return;
+          try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+          scrubDraggingRef.current = null;
+        }}
+        onPointerCancel={(e) => {
+          try { e.currentTarget.releasePointerCapture(e.pointerId); } catch { /* ignore */ }
+          scrubDraggingRef.current = null;
         }}
         title={scrubReady ? 'ドラッグ or クリックで動画シーク' : '動画読み込み中…'}
       >
