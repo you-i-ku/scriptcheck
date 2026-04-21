@@ -195,9 +195,38 @@ input:focus, textarea:focus, select:focus {
   background: #222;
   transition: background 0.1s, border-color 0.1s;
 }
-.segment-row.active { border-color: #0088ee; background: #1a2838; }
+.segment-row.active { border-color: #3a6a8a; background: #1a2432; }
+.segment-row.selected { border-color: #ffa940; background: #2a231a; box-shadow: 0 0 0 1px #ffa940 inset; }
+.segment-row.active.selected { border-color: #ffa940; background: #2a231a; }
 .segment-row.has-error { border-left: 3px solid #ff4d4d; }
 .segment-row.has-warn { border-left: 3px solid #ffa940; }
+.sel-mark { color: #ffa940; margin-right: 4px; font-size: 10px; }
+.act-mark { color: #5ab7ff; margin-right: 4px; font-size: 10px; }
+
+.speaker-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.speaker-label {
+  font-size: 11px;
+  color: #888;
+  min-width: 32px;
+}
+.speaker-input {
+  flex: 0 0 180px;
+  font-size: 13px;
+}
+.speaker-input:disabled {
+  background: #1a1a1a;
+  color: #777;
+  cursor: not-allowed;
+  font-style: italic;
+}
+.speaker-multi-note {
+  font-size: 11px;
+  color: #888;
+}
 
 .segment-row .seq {
   display: flex;

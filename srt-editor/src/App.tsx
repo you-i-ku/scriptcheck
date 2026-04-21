@@ -45,6 +45,7 @@ function App() {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [currentMs, setCurrentMs] = useState(0);
   const [activeSegmentId, setActiveSegmentId] = useState<string | null>(null);
+  const [selectedSegmentId, setSelectedSegmentId] = useState<string | null>(null);
   const [saveStatus, setSaveStatus] = useState('');
   const [pdfBusy, setPdfBusy] = useState(false);
   const [silenceBusy, setSilenceBusy] = useState(false);
@@ -128,7 +129,9 @@ function App() {
     };
     dispatch({ type: 'LOAD', payload: newState });
     sessionIdRef.current = file.name;
-    setActiveSegmentId(parsed[0]?.id ?? null);
+    const first = parsed[0]?.id ?? null;
+    setActiveSegmentId(first);
+    setSelectedSegmentId(first);
 
     const latest = await loadLatestSession();
     if (latest && latest.srtFilename === file.name && latest.entries.length > 0) {
@@ -147,7 +150,7 @@ function App() {
     const target = entries.find((e) => e.id === id);
     if (!target) return;
     videoRef.current?.seek(target.startMs);
-    setActiveSegmentId(id);
+    setSelectedSegmentId(id);
   }, [entries]);
 
   const handleWaveformSeek = useCallback((ms: number) => {
@@ -174,7 +177,7 @@ function App() {
       afterId,
       newEntry: { id: newId, seq: 0, startMs, endMs, text: '' },
     });
-    setActiveSegmentId(newId);
+    setSelectedSegmentId(newId);
   }, [entries]);
 
   const handleInsertAtCurrent = useCallback(() => {
@@ -182,13 +185,13 @@ function App() {
     const startMs = currentMs;
     const endMs = startMs + 1500;
     dispatch({ type: 'INSERT_AT_TIME', startMs, endMs, newId });
-    setActiveSegmentId(newId);
+    setSelectedSegmentId(newId);
   }, [currentMs]);
 
   const handleInsertAtRegion = useCallback((startMs: number, endMs: number) => {
     const newId = crypto.randomUUID();
     dispatch({ type: 'INSERT_AT_TIME', startMs, endMs, newId });
-    setActiveSegmentId(newId);
+    setSelectedSegmentId(newId);
     setUncovered((prev) => prev.filter(
       (u) => u.startMs !== startMs || u.endMs !== endMs,
     ));
@@ -196,8 +199,8 @@ function App() {
 
   const handleDelete = useCallback((id: string) => {
     dispatch({ type: 'DELETE', id });
-    if (activeSegmentId === id) setActiveSegmentId(null);
-  }, [activeSegmentId]);
+    if (selectedSegmentId === id) setSelectedSegmentId(null);
+  }, [selectedSegmentId]);
 
   const handleMergeNext = useCallback((id: string) => {
     dispatch({ type: 'MERGE_WITH_NEXT', id });
@@ -327,18 +330,20 @@ function App() {
         videoRef.current?.seek(currentMs + 2000);
       } else if (e.key === '[') {
         const sorted = [...entries].sort((a, b) => a.startMs - b.startMs);
-        const idx = sorted.findIndex((ee) => ee.id === activeSegmentId);
+        const anchorId = selectedSegmentId ?? activeSegmentId;
+        const idx = sorted.findIndex((ee) => ee.id === anchorId);
         const target = sorted[Math.max(0, idx - 1)];
-        if (target) { videoRef.current?.seek(target.startMs); setActiveSegmentId(target.id); }
+        if (target) { videoRef.current?.seek(target.startMs); setSelectedSegmentId(target.id); }
       } else if (e.key === ']') {
         const sorted = [...entries].sort((a, b) => a.startMs - b.startMs);
-        const idx = sorted.findIndex((ee) => ee.id === activeSegmentId);
+        const anchorId = selectedSegmentId ?? activeSegmentId;
+        const idx = sorted.findIndex((ee) => ee.id === anchorId);
         const target = sorted[Math.min(sorted.length - 1, idx + 1)];
-        if (target) { videoRef.current?.seek(target.startMs); setActiveSegmentId(target.id); }
-      } else if ((e.key === 'i' || e.key === 'I') && activeSegmentId) {
-        handleSetIn(activeSegmentId);
-      } else if ((e.key === 'o' || e.key === 'O') && activeSegmentId) {
-        handleSetOut(activeSegmentId);
+        if (target) { videoRef.current?.seek(target.startMs); setSelectedSegmentId(target.id); }
+      } else if ((e.key === 'i' || e.key === 'I') && selectedSegmentId) {
+        handleSetIn(selectedSegmentId);
+      } else if ((e.key === 'o' || e.key === 'O') && selectedSegmentId) {
+        handleSetOut(selectedSegmentId);
       } else if (e.key === 'n' || e.key === 'N') {
         handleInsertAtCurrent();
       } else if (e.key === '?') {
@@ -347,7 +352,7 @@ function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [activeSegmentId, entries, currentMs, handleSetIn, handleSetOut, handleInsertAtCurrent]);
+  }, [activeSegmentId, selectedSegmentId, entries, currentMs, handleSetIn, handleSetOut, handleInsertAtCurrent]);
 
   // Settings persistence
   useEffect(() => { saveSettings(qcOptions); }, [qcOptions]);
@@ -402,6 +407,7 @@ function App() {
             videoEl={videoEl}
             entries={entries}
             activeSegmentId={activeSegmentId}
+            selectedSegmentId={selectedSegmentId}
             uncovered={uncovered}
             onSeek={handleWaveformSeek}
             onInsertAt={handleInsertAtRegion}
@@ -415,19 +421,24 @@ function App() {
             Undo <kbd>Ctrl+Z</kbd> / Redo <kbd>Ctrl+Y</kbd> /
             検索 <kbd>Ctrl+F</kbd> / ヘルプ <kbd>?</kbd>
             <br />
-            <span style={{ color: '#888' }}>波形のセグメント帯: <b>端をドラッグで開始/終了調整</b>(動画が追従) / <b>中央クリックでジャンプ</b></span>
+            <span style={{ color: '#888' }}>
+              <span style={{ color: '#5ab7ff' }}>■青</span>=再生中 /
+              <span style={{ color: '#ffb347' }}>■橙</span>=選択中(I/O/Nなどの操作対象)。
+              波形: <b>空き領域ドラッグ</b>=シーク(scrub)、<b>セグメント端ドラッグ</b>=開始/終了調整、<b>Ctrl+ホイール</b>=ズーム
+            </span>
           </div>
         </div>
         <div className="right-pane">
           <SegmentList
             entries={entries}
             activeSegmentId={activeSegmentId}
+            selectedSegmentId={selectedSegmentId}
             issuesByEntry={issuesByEntry}
             cpsThreshold={qcOptions.cpsThreshold}
             excludeSpeakerTagFromCps={qcOptions.excludeSpeakerTagFromCps}
             onPatch={handlePatch}
             onJumpTo={handleJumpTo}
-            onActivate={setActiveSegmentId}
+            onActivate={setSelectedSegmentId}
             onInsertAfter={handleInsertAfter}
             onDelete={handleDelete}
             onMergeNext={handleMergeNext}
@@ -469,10 +480,10 @@ function App() {
       )}
       {modalTimeshift && (
         <TimeshiftDialog
-          hasActive={!!activeSegmentId}
+          hasActive={!!selectedSegmentId}
           onApplyAll={(deltaMs) => dispatch({ type: 'TIMESHIFT_ALL', deltaMs })}
           onApplyFromActive={(deltaMs) => {
-            if (activeSegmentId) dispatch({ type: 'TIMESHIFT_FROM', fromId: activeSegmentId, deltaMs });
+            if (selectedSegmentId) dispatch({ type: 'TIMESHIFT_FROM', fromId: selectedSegmentId, deltaMs });
           }}
           onClose={() => setModalTimeshift(false)}
         />

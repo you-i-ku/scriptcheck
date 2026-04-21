@@ -6,6 +6,7 @@ import type { IssuesByEntry } from '../lib/qc';
 type Props = {
   entries: SrtEntry[];
   activeSegmentId: string | null;
+  selectedSegmentId: string | null;
   issuesByEntry: IssuesByEntry;
   cpsThreshold: number;
   excludeSpeakerTagFromCps: boolean;
@@ -21,23 +22,38 @@ type Props = {
 };
 
 export function SegmentList({
-  entries, activeSegmentId, issuesByEntry,
+  entries, activeSegmentId, selectedSegmentId, issuesByEntry,
   cpsThreshold, excludeSpeakerTagFromCps,
   onPatch, onJumpTo, onActivate, onInsertAfter,
   onDelete, onMergeNext, onSplitAtCursor, onSetIn, onSetOut,
 }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
+  const prevSelected = useRef<string | null>(null);
   const prevActive = useRef<string | null>(null);
 
   useEffect(() => {
-    if (activeSegmentId === prevActive.current) return;
-    prevActive.current = activeSegmentId;
-    if (!activeSegmentId || !listRef.current) return;
-    const node = listRef.current.querySelector<HTMLElement>(
-      `[data-id="${CSS.escape(activeSegmentId)}"]`,
-    );
-    if (node) node.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-  }, [activeSegmentId]);
+    // 選択中が変わったら最優先でそこにスクロール
+    if (selectedSegmentId !== prevSelected.current) {
+      prevSelected.current = selectedSegmentId;
+      if (selectedSegmentId && listRef.current) {
+        const node = listRef.current.querySelector<HTMLElement>(
+          `[data-id="${CSS.escape(selectedSegmentId)}"]`,
+        );
+        node?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      return;
+    }
+    // 選択変更が無く、再生中行が変わった場合はそちらへ
+    if (activeSegmentId !== prevActive.current) {
+      prevActive.current = activeSegmentId;
+      if (activeSegmentId && listRef.current) {
+        const node = listRef.current.querySelector<HTMLElement>(
+          `[data-id="${CSS.escape(activeSegmentId)}"]`,
+        );
+        node?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+    }
+  }, [selectedSegmentId, activeSegmentId]);
 
   if (entries.length === 0) {
     return (
@@ -58,6 +74,7 @@ export function SegmentList({
               entry={e}
               index={i}
               active={e.id === activeSegmentId}
+              selected={e.id === selectedSegmentId}
               issues={issuesByEntry[e.id] ?? []}
               cpsThreshold={cpsThreshold}
               excludeSpeakerTagFromCps={excludeSpeakerTagFromCps}

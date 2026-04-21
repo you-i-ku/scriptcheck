@@ -8,14 +8,19 @@ type Props = {
   videoEl: HTMLVideoElement | null;
   entries: SrtEntry[];
   activeSegmentId: string | null;
+  selectedSegmentId: string | null;
   uncovered: SpeechRegion[];
   onSeek?: (ms: number) => void;
   onInsertAt?: (startMs: number, endMs: number) => void;
   onRegionMove?: (id: string, startMs: number, endMs: number) => void;
 };
 
+const MIN_PX_PER_SEC = 10;
+const MAX_PX_PER_SEC = 400;
+const DEFAULT_PX_PER_SEC = 50;
+
 export function Waveform({
-  videoEl, entries, activeSegmentId, uncovered,
+  videoEl, entries, activeSegmentId, selectedSegmentId, uncovered,
   onSeek, onInsertAt, onRegionMove,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -23,6 +28,7 @@ export function Waveform({
   const regionsRef = useRef<ReturnType<typeof RegionsPlugin.create> | null>(null);
   const handlersRef = useRef({ onSeek, onInsertAt, onRegionMove });
   const draggingRef = useRef<string | null>(null);
+  const zoomRef = useRef<number>(DEFAULT_PX_PER_SEC);
 
   useEffect(() => {
     handlersRef.current = { onSeek, onInsertAt, onRegionMove };
@@ -41,6 +47,9 @@ export function Waveform({
       cursorColor: '#fff',
       height: 80,
       media: videoEl,
+      minPxPerSec: DEFAULT_PX_PER_SEC,
+      dragToSeek: { debounceTime: 10 },
+      autoScroll: true,
       plugins: [regions],
     });
     wsRef.current = ws;
@@ -61,7 +70,7 @@ export function Waveform({
       }
     });
 
-    // ドラッグ中: 動画を追従させる(commit はしない)
+    // ドラッグ中: 動画カーソルをリアルタイム追従させる(commit はしない)
     regions.on('region-update', (region) => {
       if (region.id.startsWith('uncovered:')) return;
       draggingRef.current = region.id;
@@ -79,7 +88,22 @@ export function Waveform({
       );
     });
 
+    // Ctrl+ホイールでズーム
+    const containerEl = containerRef.current;
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      const factor = e.deltaY < 0 ? 1.25 : 0.8;
+      const next = Math.min(MAX_PX_PER_SEC, Math.max(MIN_PX_PER_SEC, zoomRef.current * factor));
+      if (next !== zoomRef.current) {
+        zoomRef.current = next;
+        ws.zoom(next);
+      }
+    };
+    containerEl.addEventListener('wheel', onWheel, { passive: false });
+
     return () => {
+      containerEl.removeEventListener('wheel', onWheel);
       ws.destroy();
       wsRef.current = null;
       regionsRef.current = null;
@@ -107,18 +131,24 @@ export function Waveform({
     }
 
     for (const e of entries) {
+      const isSelected = e.id === selectedSegmentId;
+      const isActive = e.id === activeSegmentId;
+      // 選択中=濃い橙、再生中=薄い青、両方=橙優先、それ以外=薄グレー
+      const color = isSelected
+        ? 'rgba(255, 165, 0, 0.45)'
+        : isActive
+          ? 'rgba(90, 183, 255, 0.25)'
+          : 'rgba(120, 120, 120, 0.12)';
       regions.addRegion({
         id: e.id,
         start: e.startMs / 1000,
         end: e.endMs / 1000,
-        color: e.id === activeSegmentId
-          ? 'rgba(0, 136, 238, 0.35)'
-          : 'rgba(120, 120, 120, 0.12)',
+        color,
         drag: true,
         resize: true,
       });
     }
-  }, [entries, activeSegmentId, uncovered]);
+  }, [entries, activeSegmentId, selectedSegmentId, uncovered]);
 
   return (
     <div className="waveform-wrap">
