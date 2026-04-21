@@ -112,10 +112,15 @@ export const SegmentRow = memo(function SegmentRow({
   return (
     <div className={rowClass} onFocus={onFocus} onClick={onFocus}>
       <div className="seq">
-        <div>
-          {selected && <span className="sel-mark" title="選択中">●</span>}
-          {active && !selected && <span className="act-mark" title="再生中">▶</span>}
-          #{index + 1}
+        <div className="seq-head">
+          <span className="mark-slot">
+            {selected
+              ? <span className="sel-mark" title="選択中">●</span>
+              : active
+                ? <span className="act-mark" title="再生中">▶</span>
+                : null}
+          </span>
+          <span className="seq-num">#{index + 1}</span>
         </div>
         <div className="cps-badge" style={{ background: color }} title={`${cps.toFixed(1)} CPS`}>
           {cps.toFixed(1)}

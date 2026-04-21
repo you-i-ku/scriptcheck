@@ -285,7 +285,19 @@ input:focus, textarea:focus, select:focus {
   color: #888;
   text-align: center;
 }
-.segment-row .seq > div:first-child { font-size: 12px; }
+.segment-row .seq-head {
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+.mark-slot {
+  display: inline-flex;
+  align-items: center;
+  min-width: 14px;
+}
+.seq-num { font-variant-numeric: tabular-nums; }
 .cps-badge {
   border-radius: 3px;
   padding: 2px 0;

@@ -59,7 +59,8 @@ export function Toolbar(p: Props) {
           {p.silenceBusy ? '解析中…' : p.hasSilenceResults ? '再検出' : '無音検出'}
         </button>
         <button onClick={p.onToggleQcPanel} disabled={!p.hasEntries}>
-          QC {p.issuesCount.errors > 0 && <span className="badge-err">{p.issuesCount.errors}</span>}
+          <span>QC</span>
+          {p.issuesCount.errors > 0 && <span className="badge-err">{p.issuesCount.errors}</span>}
           {p.issuesCount.warns > 0 && <span className="badge-wn">{p.issuesCount.warns}</span>}
         </button>
         <button
