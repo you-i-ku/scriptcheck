@@ -1,0 +1,199 @@
+:root {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans",
+    "Yu Gothic", Meiryo, sans-serif;
+  font-size: 14px;
+  color-scheme: dark;
+  background: #1a1a1a;
+  color: #e0e0e0;
+}
+
+* { box-sizing: border-box; }
+
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: #2a2a2a;
+  border: 1px solid #444;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+button:hover:not(:disabled) { background: #3a3a3a; }
+button:disabled { opacity: 0.4; cursor: not-allowed; }
+button.primary { background: #0066cc; border-color: #0055aa; }
+button.primary:hover:not(:disabled) { background: #0077dd; }
+
+input, textarea {
+  font: inherit;
+  color: inherit;
+  background: #252525;
+  border: 1px solid #444;
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+input:focus, textarea:focus { outline: 1px solid #0088ee; border-color: #0088ee; }
+
+.app {
+  display: grid;
+  grid-template-rows: auto auto 1fr auto;
+  height: 100vh;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #222;
+  border-bottom: 1px solid #333;
+  flex-wrap: wrap;
+}
+.toolbar .filename {
+  font-size: 12px;
+  color: #888;
+  margin-left: 4px;
+  max-width: 280px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.toolbar .spacer { flex: 1; }
+.toolbar .status { font-size: 12px; color: #888; min-width: 80px; text-align: right; }
+
+.main {
+  display: grid;
+  grid-template-columns: minmax(400px, 45%) 1fr;
+  min-height: 0;
+}
+
+.left-pane {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid #333;
+}
+.video-wrap {
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 16/9;
+  max-height: 50vh;
+}
+.video-wrap video { width: 100%; height: 100%; object-fit: contain; }
+.video-placeholder { color: #666; font-size: 13px; }
+
+.waveform-wrap {
+  flex: 1;
+  min-height: 120px;
+  background: #141414;
+  padding: 8px;
+  overflow: hidden;
+}
+.waveform-container { width: 100%; }
+
+.segment-list {
+  overflow-y: auto;
+  padding: 8px;
+  min-height: 0;
+}
+
+.segment-row {
+  display: grid;
+  grid-template-columns: 66px 1fr;
+  gap: 8px;
+  padding: 8px;
+  margin-bottom: 6px;
+  border: 1px solid #333;
+  border-radius: 4px;
+  background: #222;
+  transition: background 0.1s, border-color 0.1s;
+}
+.segment-row.active { border-color: #0088ee; background: #1a2838; }
+.segment-row .seq {
+  color: #888;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  padding-top: 4px;
+}
+.segment-row .seq .jump {
+  display: block;
+  margin-top: 4px;
+  padding: 2px 4px;
+  font-size: 10px;
+  width: 100%;
+}
+.segment-row .body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.segment-row .times {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  flex-wrap: wrap;
+}
+.segment-row .times input.tc {
+  width: 118px;
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+}
+.segment-row .times .arrow { color: #666; margin: 0 4px; }
+.segment-row .times .nudge {
+  padding: 2px 6px;
+  font-size: 11px;
+}
+.segment-row textarea {
+  width: 100%;
+  min-height: 44px;
+  resize: vertical;
+  font-size: 13px;
+  line-height: 1.45;
+  font-family: inherit;
+}
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #666;
+  gap: 12px;
+  padding: 40px;
+  text-align: center;
+}
+
+.restore-banner {
+  padding: 10px 14px;
+  background: #2a3a28;
+  border-bottom: 1px solid #3a5a36;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.footer-status {
+  padding: 4px 12px;
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+  font-size: 11px;
+  color: #777;
+  display: flex;
+  gap: 16px;
+}
+
+.hidden-input { display: none; }

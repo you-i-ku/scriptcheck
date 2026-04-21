@@ -1,0 +1,38 @@
+{
+  "name": "srt-editor",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "lint": "eslint .",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@pdf-lib/fontkit": "^1.1.1",
+    "budoux": "^0.8.1",
+    "encoding-japanese": "^2.2.0",
+    "idb": "^8.0.3",
+    "pdf-lib": "^1.17.1",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "wavesurfer.js": "^7.12.6"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@fontsource/noto-serif-jp": "^5.2.8",
+    "@types/encoding-japanese": "^2.2.1",
+    "@types/node": "^24.12.2",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.5.0",
+    "typescript": "~6.0.2",
+    "typescript-eslint": "^8.58.2",
+    "vite": "^8.0.9"
+  }
+}
