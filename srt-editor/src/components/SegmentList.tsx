@@ -7,6 +7,7 @@ type Props = {
   entries: SrtEntry[];
   activeSegmentId: string | null;
   selectedSegmentId: string | null;
+  autoScrollEnabled: boolean;
   issuesByEntry: IssuesByEntry;
   cpsThreshold: number;
   excludeSpeakerTagFromCps: boolean;
@@ -22,7 +23,7 @@ type Props = {
 };
 
 export function SegmentList({
-  entries, activeSegmentId, selectedSegmentId, issuesByEntry,
+  entries, activeSegmentId, selectedSegmentId, autoScrollEnabled, issuesByEntry,
   cpsThreshold, excludeSpeakerTagFromCps,
   onPatch, onJumpTo, onActivate, onInsertAfter,
   onDelete, onMergeNext, onSplitAtCursor, onSetIn, onSetOut,
@@ -32,7 +33,7 @@ export function SegmentList({
   const prevActive = useRef<string | null>(null);
 
   useEffect(() => {
-    // 選択中が変わったら最優先でそこにスクロール
+    // 選択中が変わったら最優先でそこにスクロール(ユーザーの明示的操作なので常時)
     if (selectedSegmentId !== prevSelected.current) {
       prevSelected.current = selectedSegmentId;
       if (selectedSegmentId && listRef.current) {
@@ -43,7 +44,11 @@ export function SegmentList({
       }
       return;
     }
-    // 選択変更が無く、再生中行が変わった場合はそちらへ
+    // 再生追従スクロール(OFFの時は抑制)
+    if (!autoScrollEnabled) {
+      prevActive.current = activeSegmentId;
+      return;
+    }
     if (activeSegmentId !== prevActive.current) {
       prevActive.current = activeSegmentId;
       if (activeSegmentId && listRef.current) {
@@ -53,7 +58,7 @@ export function SegmentList({
         node?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
       }
     }
-  }, [selectedSegmentId, activeSegmentId]);
+  }, [selectedSegmentId, activeSegmentId, autoScrollEnabled]);
 
   if (entries.length === 0) {
     return (

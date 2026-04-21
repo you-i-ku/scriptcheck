@@ -53,6 +53,7 @@ function App() {
   const [videoEl, setVideoEl] = useState<HTMLVideoElement | null>(null);
   const [pendingRestore, setPendingRestore] = useState<SessionSnapshot | null>(null);
   const [qcOptions, setQcOptions] = useState<QcOptions>(loadSettings);
+  const [autoScrollEnabled, setAutoScrollEnabled] = useState(true);
 
   const [modalHelp, setModalHelp] = useState(false);
   const [modalFind, setModalFind] = useState(false);
@@ -388,6 +389,8 @@ function App() {
         onDetectSilence={handleDetectSilence}
         issuesCount={issuesCount}
         hasSilenceResults={uncovered.length > 0}
+        autoScrollEnabled={autoScrollEnabled}
+        onToggleAutoScroll={() => setAutoScrollEnabled((v) => !v)}
       />
 
       {pendingRestore && (
@@ -409,6 +412,7 @@ function App() {
             activeSegmentId={activeSegmentId}
             selectedSegmentId={selectedSegmentId}
             uncovered={uncovered}
+            currentMs={currentMs}
             onSeek={handleWaveformSeek}
             onInsertAt={handleInsertAtRegion}
             onRegionMove={(id, startMs, endMs) =>
@@ -424,7 +428,7 @@ function App() {
             <span style={{ color: '#888' }}>
               <span style={{ color: '#5ab7ff' }}>■青</span>=再生中 /
               <span style={{ color: '#ffb347' }}>■橙</span>=選択中(I/O/Nなどの操作対象)。
-              波形: <b>空き領域ドラッグ</b>=シーク(scrub)、<b>セグメント端ドラッグ</b>=開始/終了調整、<b>Ctrl+ホイール</b>=ズーム
+              波形の <b>上部グレーバー</b>=シーク専用、<b>セグメント端ドラッグ</b>=開始/終了調整、<b>Ctrl+ホイール</b>=ズーム
             </span>
           </div>
         </div>
@@ -433,6 +437,7 @@ function App() {
             entries={entries}
             activeSegmentId={activeSegmentId}
             selectedSegmentId={selectedSegmentId}
+            autoScrollEnabled={autoScrollEnabled}
             issuesByEntry={issuesByEntry}
             cpsThreshold={qcOptions.cpsThreshold}
             excludeSpeakerTagFromCps={qcOptions.excludeSpeakerTagFromCps}

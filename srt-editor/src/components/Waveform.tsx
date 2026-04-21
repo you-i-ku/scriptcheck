@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js';
 import type { SrtEntry } from '../types';
@@ -10,6 +10,7 @@ type Props = {
   activeSegmentId: string | null;
   selectedSegmentId: string | null;
   uncovered: SpeechRegion[];
+  currentMs: number;
   onSeek?: (ms: number) => void;
   onInsertAt?: (startMs: number, endMs: number) => void;
   onRegionMove?: (id: string, startMs: number, endMs: number) => void;
@@ -20,20 +21,24 @@ const MAX_PX_PER_SEC = 400;
 const DEFAULT_PX_PER_SEC = 50;
 
 export function Waveform({
-  videoEl, entries, activeSegmentId, selectedSegmentId, uncovered,
+  videoEl, entries, activeSegmentId, selectedSegmentId, uncovered, currentMs,
   onSeek, onInsertAt, onRegionMove,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrubRef = useRef<HTMLDivElement>(null);
   const wsRef = useRef<WaveSurfer | null>(null);
   const regionsRef = useRef<ReturnType<typeof RegionsPlugin.create> | null>(null);
   const handlersRef = useRef({ onSeek, onInsertAt, onRegionMove });
   const draggingRef = useRef<string | null>(null);
   const zoomRef = useRef<number>(DEFAULT_PX_PER_SEC);
+  const [durationMs, setDurationMs] = useState(0);
+  const [scrubDragging, setScrubDragging] = useState(false);
 
   useEffect(() => {
     handlersRef.current = { onSeek, onInsertAt, onRegionMove };
   }, [onSeek, onInsertAt, onRegionMove]);
 
+  // Waveform セットアップ
   useEffect(() => {
     if (!videoEl || !containerRef.current) return;
 
@@ -48,12 +53,16 @@ export function Waveform({
       height: 80,
       media: videoEl,
       minPxPerSec: DEFAULT_PX_PER_SEC,
-      dragToSeek: { debounceTime: 10 },
       autoScroll: true,
+      dragToSeek: false,
       plugins: [regions],
     });
     wsRef.current = ws;
 
+    const onReady = () => setDurationMs(Math.round(ws.getDuration() * 1000));
+    ws.on('ready', onReady);
+
+    // 波形自体をクリックしたときのシーク(ドラッグはしない)
     ws.on('interaction', () => {
       handlersRef.current.onSeek?.(Math.round(ws.getCurrentTime() * 1000));
     });
@@ -70,14 +79,12 @@ export function Waveform({
       }
     });
 
-    // ドラッグ中: 動画カーソルをリアルタイム追従させる(commit はしない)
     regions.on('region-update', (region) => {
       if (region.id.startsWith('uncovered:')) return;
       draggingRef.current = region.id;
       if (videoEl) videoEl.currentTime = region.start;
     });
 
-    // ドラッグ終了: 編集commit
     regions.on('region-updated', (region) => {
       if (region.id.startsWith('uncovered:')) return;
       draggingRef.current = null;
@@ -88,7 +95,6 @@ export function Waveform({
       );
     });
 
-    // Ctrl+ホイールでズーム
     const containerEl = containerRef.current;
     const onWheel = (e: WheelEvent) => {
       if (!e.ctrlKey && !e.metaKey) return;
@@ -111,10 +117,10 @@ export function Waveform({
     };
   }, [videoEl]);
 
+  // リージョン再描画
   useEffect(() => {
     const regions = regionsRef.current;
     if (!regions) return;
-    // ドラッグ中はリージョン再構築しない(ドラッグが消える)
     if (draggingRef.current !== null) return;
 
     regions.clearRegions();
@@ -133,7 +139,6 @@ export function Waveform({
     for (const e of entries) {
       const isSelected = e.id === selectedSegmentId;
       const isActive = e.id === activeSegmentId;
-      // 選択中=濃い橙、再生中=薄い青、両方=橙優先、それ以外=薄グレー
       const color = isSelected
         ? 'rgba(255, 165, 0, 0.45)'
         : isActive
@@ -150,8 +155,47 @@ export function Waveform({
     }
   }, [entries, activeSegmentId, selectedSegmentId, uncovered]);
 
+  // スクラブストリップのマウス操作
+  useEffect(() => {
+    if (!scrubDragging) return;
+    const onMove = (e: MouseEvent) => updateScrub(e.clientX);
+    const onUp = () => setScrubDragging(false);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scrubDragging]);
+
+  const updateScrub = (clientX: number) => {
+    if (!scrubRef.current || !videoEl || durationMs === 0) return;
+    const rect = scrubRef.current.getBoundingClientRect();
+    const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+    const timeS = frac * (videoEl.duration || 0);
+    videoEl.currentTime = timeS;
+  };
+
+  const playheadPct = durationMs > 0 ? (currentMs / durationMs) * 100 : 0;
+
   return (
     <div className="waveform-wrap">
+      <div
+        ref={scrubRef}
+        className="scrub-strip"
+        onMouseDown={(e) => {
+          setScrubDragging(true);
+          updateScrub(e.clientX);
+        }}
+        title="ドラッグ or クリックで動画シーク"
+      >
+        <div className="scrub-label">▶ シーク</div>
+        <div
+          className="scrub-playhead"
+          style={{ left: `${playheadPct}%` }}
+        />
+      </div>
       <div ref={containerRef} className="waveform-container" />
     </div>
   );

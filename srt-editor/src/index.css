@@ -203,29 +203,76 @@ input:focus, textarea:focus, select:focus {
 .sel-mark { color: #ffa940; margin-right: 4px; font-size: 10px; }
 .act-mark { color: #5ab7ff; margin-right: 4px; font-size: 10px; }
 
-.speaker-row {
+.speaker-pairs {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
+}
+.speaker-pair {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
 }
 .speaker-label {
   font-size: 11px;
   color: #888;
-  min-width: 32px;
+  min-width: 28px;
+  padding-top: 6px;
+  flex: 0 0 auto;
 }
 .speaker-input {
-  flex: 0 0 180px;
+  flex: 0 0 140px;
   font-size: 13px;
 }
-.speaker-input:disabled {
-  background: #1a1a1a;
-  color: #777;
-  cursor: not-allowed;
-  font-style: italic;
+.pair-dialogue {
+  flex: 1;
+  min-height: 44px;
+  resize: vertical;
+  font-size: 13px;
+  line-height: 1.45;
+  font-family: inherit;
 }
-.speaker-multi-note {
+.pair-delete {
+  flex: 0 0 auto;
+  padding: 4px 8px;
   font-size: 11px;
+  align-self: stretch;
+}
+
+/* Toolbar toggle state */
+.toolbar button.toggle-on { background: #2a4a6a; border-color: #3a5a7a; }
+.toolbar button.toggle-off { background: #2a2a2a; border-color: #444; color: #888; }
+
+/* Scrub strip */
+.scrub-strip {
+  position: relative;
+  height: 20px;
+  background: #1a1a1a;
+  border: 1px solid #333;
+  border-radius: 3px;
+  margin-bottom: 4px;
+  cursor: ew-resize;
+  user-select: none;
+  overflow: hidden;
+}
+.scrub-strip:hover { background: #222; border-color: #555; }
+.scrub-label {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 10px;
   color: #888;
+  pointer-events: none;
+}
+.scrub-playhead {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #ff6b00;
+  box-shadow: 0 0 4px #ff6b00;
+  pointer-events: none;
 }
 
 .segment-row .seq {

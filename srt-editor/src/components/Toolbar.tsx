@@ -24,6 +24,8 @@ type Props = {
   onDetectSilence: () => void;
   issuesCount: { errors: number; warns: number };
   hasSilenceResults: boolean;
+  autoScrollEnabled: boolean;
+  onToggleAutoScroll: () => void;
 };
 
 export function Toolbar(p: Props) {
@@ -59,6 +61,13 @@ export function Toolbar(p: Props) {
         <button onClick={p.onToggleQcPanel} disabled={!p.hasEntries}>
           QC {p.issuesCount.errors > 0 && <span className="badge-err">{p.issuesCount.errors}</span>}
           {p.issuesCount.warns > 0 && <span className="badge-wn">{p.issuesCount.warns}</span>}
+        </button>
+        <button
+          onClick={p.onToggleAutoScroll}
+          title={p.autoScrollEnabled ? '再生で自動スクロール: ON' : '再生で自動スクロール: OFF'}
+          className={p.autoScrollEnabled ? 'toggle-on' : 'toggle-off'}
+        >
+          {p.autoScrollEnabled ? '自動追従◉' : '自動追従○'}
         </button>
       </div>
 

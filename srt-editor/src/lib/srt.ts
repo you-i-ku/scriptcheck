@@ -42,6 +42,37 @@ export function serializeSrt(entries: SrtEntry[]): string {
   return blocks.join('\n\n') + '\n';
 }
 
+export type SpeakerPair = { name: string; text: string };
+
+/**
+ * テキスト編集用: 話者タグのクリーンアップ(HTMLタグ除去等)はせず、
+ * 元の文字を保持したままペアに分解する。
+ */
+export function parseSpeakerPairs(text: string): SpeakerPair[] {
+  if (text === '') return [{ name: '', text: '' }];
+  const pairs: SpeakerPair[] = [];
+  for (const rawLine of text.split('\n')) {
+    let m = rawLine.match(/^（(.+?)）\s*([\s\S]*)$/);
+    if (!m) m = rawLine.match(/^\(([^)]+)\)\s*([\s\S]*)$/);
+    if (m) {
+      pairs.push({ name: m[1], text: m[2] });
+    } else if (pairs.length > 0) {
+      // 話者タグで始まらない行 → 直前の話者のセリフに継続(同一話者の複数行)
+      const last = pairs[pairs.length - 1];
+      last.text = last.text ? `${last.text}\n${rawLine}` : rawLine;
+    } else {
+      pairs.push({ name: '', text: rawLine });
+    }
+  }
+  return pairs.length > 0 ? pairs : [{ name: '', text: '' }];
+}
+
+export function serializeSpeakerPairs(pairs: SpeakerPair[]): string {
+  return pairs
+    .map((p) => (p.name.trim() ? `（${p.name.trim()}）${p.text}` : p.text))
+    .join('\n');
+}
+
 export function parseSpeakerTags(text: string): CharDialogue[] {
   const result: CharDialogue[] = [];
   for (const rawLine of text.split('\n')) {
