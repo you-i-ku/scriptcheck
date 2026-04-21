@@ -31,7 +31,6 @@ export function Waveform({
   const handlersRef = useRef({ onSeek, onInsertAt, onRegionMove });
   const draggingRef = useRef<string | null>(null);
   const zoomRef = useRef<number>(DEFAULT_PX_PER_SEC);
-  const [durationMs, setDurationMs] = useState(0);
   const [scrubDragging, setScrubDragging] = useState(false);
 
   useEffect(() => {
@@ -58,9 +57,6 @@ export function Waveform({
       plugins: [regions],
     });
     wsRef.current = ws;
-
-    const onReady = () => setDurationMs(Math.round(ws.getDuration() * 1000));
-    ws.on('ready', onReady);
 
     // 波形自体をクリックしたときのシーク(ドラッグはしない)
     ws.on('interaction', () => {
@@ -170,31 +166,55 @@ export function Waveform({
   }, [scrubDragging]);
 
   const updateScrub = (clientX: number) => {
-    if (!scrubRef.current || !videoEl || durationMs === 0) return;
+    if (!scrubRef.current || !videoEl) return;
+    const dur = videoEl.duration;
+    if (!Number.isFinite(dur) || dur <= 0) return;
     const rect = scrubRef.current.getBoundingClientRect();
+    if (rect.width <= 0) return;
     const frac = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-    const timeS = frac * (videoEl.duration || 0);
-    videoEl.currentTime = timeS;
+    const timeS = frac * dur;
+    if (!Number.isFinite(timeS)) return;
+    const clamped = Math.max(0, Math.min(timeS, dur - 0.001));
+    try {
+      videoEl.currentTime = clamped;
+    } catch {
+      // 古い動画フォーマット等で例外を投げることがあるので握りつぶす
+    }
   };
 
-  const playheadPct = durationMs > 0 ? (currentMs / durationMs) * 100 : 0;
+  const playheadPct = (() => {
+    if (!videoEl) return 0;
+    const dur = videoEl.duration;
+    if (!Number.isFinite(dur) || dur <= 0) return 0;
+    const pct = (currentMs / 1000 / dur) * 100;
+    return Math.max(0, Math.min(100, pct));
+  })();
+  const scrubReady = !!videoEl
+    && Number.isFinite(videoEl.duration)
+    && videoEl.duration > 0;
 
   return (
     <div className="waveform-wrap">
       <div
         ref={scrubRef}
-        className="scrub-strip"
+        className={`scrub-strip${scrubReady ? '' : ' disabled'}`}
         onMouseDown={(e) => {
+          if (!scrubReady) return;
+          e.preventDefault();
           setScrubDragging(true);
           updateScrub(e.clientX);
         }}
-        title="ドラッグ or クリックで動画シーク"
+        title={scrubReady ? 'ドラッグ or クリックで動画シーク' : '動画読み込み中…'}
       >
-        <div className="scrub-label">▶ シーク</div>
-        <div
-          className="scrub-playhead"
-          style={{ left: `${playheadPct}%` }}
-        />
+        <div className="scrub-label">
+          {scrubReady ? '▶ シーク' : '(動画未読み込み)'}
+        </div>
+        {scrubReady && (
+          <div
+            className="scrub-playhead"
+            style={{ left: `${playheadPct}%` }}
+          />
+        )}
       </div>
       <div ref={containerRef} className="waveform-container" />
     </div>
