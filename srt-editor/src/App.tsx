@@ -405,11 +405,17 @@ function App() {
             uncovered={uncovered}
             onSeek={handleWaveformSeek}
             onInsertAt={handleInsertAtRegion}
+            onRegionMove={(id, startMs, endMs) =>
+              dispatch({ type: 'PATCH_ENTRY', id, patch: { startMs, endMs } })
+            }
           />
           <div className="hint-bar">
-            再生中 <kbd>Space</kbd> / 前後2秒 <kbd>J</kbd><kbd>L</kbd> / 前後セグ <kbd>[</kbd><kbd>]</kbd> /
+            再生 <kbd>Space</kbd> / 前後2秒 <kbd>J</kbd><kbd>L</kbd> / 前後セグ <kbd>[</kbd><kbd>]</kbd> /
             In/Out <kbd>I</kbd><kbd>O</kbd> / 現在位置に挿入 <kbd>N</kbd> /
-            Undo <kbd>Ctrl+Z</kbd> / 検索 <kbd>Ctrl+F</kbd> / ヘルプ <kbd>?</kbd>
+            Undo <kbd>Ctrl+Z</kbd> / Redo <kbd>Ctrl+Y</kbd> /
+            検索 <kbd>Ctrl+F</kbd> / ヘルプ <kbd>?</kbd>
+            <br />
+            <span style={{ color: '#888' }}>波形のセグメント帯: <b>端をドラッグで開始/終了調整</b>(動画が追従) / <b>中央クリックでジャンプ</b></span>
           </div>
         </div>
         <div className="right-pane">

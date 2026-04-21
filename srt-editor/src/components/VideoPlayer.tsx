@@ -44,7 +44,8 @@ export const VideoPlayer = forwardRef<VideoHandle, Props>(function VideoPlayer(
       v.removeEventListener('timeupdate', handler);
       v.removeEventListener('seeked', handler);
     };
-  }, [onTimeUpdate]);
+    // src を deps に含めないと、src=null → 非null の再マウント時に listener が付かない(bug)
+  }, [onTimeUpdate, src]);
 
   if (!src) {
     return <div className="video-placeholder">動画ファイルを読み込んでください</div>;
