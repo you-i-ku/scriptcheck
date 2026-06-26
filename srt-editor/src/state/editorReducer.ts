@@ -37,6 +37,8 @@ export type Action =
   | { type: 'INSERT_AT_TIME'; startMs: number; endMs: number; newId: string }
   | { type: 'SPLIT'; id: string; charIndex: number; timeMs: number; newId: string }
   | { type: 'MERGE_WITH_NEXT'; id: string }
+  | { type: 'MOVE'; id: string; direction: -1 | 1 }
+  | { type: 'DUPLICATE'; id: string; newId: string }
   | { type: 'DELETE'; id: string }
   | { type: 'TIMESHIFT_ALL'; deltaMs: number }
   | { type: 'TIMESHIFT_FROM'; fromId: string; deltaMs: number }
@@ -172,6 +174,40 @@ function applyAction(state: EditorState, action: Action): EditorState {
         ...state.entries.slice(0, idx),
         merged,
         ...state.entries.slice(idx + 2),
+      ];
+      return { ...state, entries };
+    }
+    case 'MOVE': {
+      const idx = state.entries.findIndex((e) => e.id === action.id);
+      const target = idx + action.direction;
+      if (idx < 0 || target < 0 || target >= state.entries.length) return state;
+      const entries = state.entries.slice();
+      const current = entries[idx]!;
+      entries[idx] = entries[target]!;
+      entries[target] = current;
+      return { ...state, entries };
+    }
+    case 'DUPLICATE': {
+      const idx = state.entries.findIndex((e) => e.id === action.id);
+      if (idx < 0) return state;
+      const source = state.entries[idx]!;
+      const next = state.entries[idx + 1];
+      const duration = Math.max(500, source.endMs - source.startMs);
+      const startMs = source.endMs + 100;
+      const endMs = next
+        ? Math.min(Math.max(startMs + 100, next.startMs - 100), startMs + duration)
+        : startMs + duration;
+      const copy: SrtEntry = {
+        ...source,
+        id: action.newId,
+        seq: 0,
+        startMs,
+        endMs,
+      };
+      const entries = [
+        ...state.entries.slice(0, idx + 1),
+        copy,
+        ...state.entries.slice(idx + 1),
       ];
       return { ...state, entries };
     }

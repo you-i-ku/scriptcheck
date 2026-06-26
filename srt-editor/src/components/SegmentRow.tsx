@@ -19,6 +19,9 @@ type Props = {
   onFocus: () => void;
   onDelete: () => void;
   onMergeNext: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onDuplicate: () => void;
   onSplitAtCursor: (charIndex: number) => void;
   onSetInFromCurrent: () => void;
   onSetOutFromCurrent: () => void;
@@ -28,6 +31,7 @@ export const SegmentRow = memo(function SegmentRow({
   entry, index, active, selected, issues,
   cpsThreshold, excludeSpeakerTagFromCps,
   onPatch, onJump, onFocus, onDelete, onMergeNext, onSplitAtCursor,
+  onMoveUp, onMoveDown, onDuplicate,
   onSetInFromCurrent, onSetOutFromCurrent,
 }: Props) {
   // ローカル state でペア管理(空ペア追加が外部再parseで消えないように)
@@ -162,6 +166,10 @@ export const SegmentRow = memo(function SegmentRow({
               onNameChange={(v) => handlePairName(i, v)}
               onTextChange={(v) => handlePairText(i, v)}
               onDelete={() => removePair(i)}
+              onInsertLineBreak={(pos) => {
+                const nextText = `${p.text.slice(0, pos)}\n${p.text.slice(pos)}`;
+                handlePairText(i, nextText);
+              }}
               onSplitAtCursor={(pos) => {
                 // 全体テキスト上のカーソル位置を計算
                 let offset = 0;
@@ -188,7 +196,10 @@ export const SegmentRow = memo(function SegmentRow({
         )}
         <div className="row-actions">
           <button onClick={addPair} title="このセグメントに話者を追加">＋話者</button>
-          <button onClick={onMergeNext} title="次の行と結合">▲結合</button>
+          <button onClick={onMoveUp} title="このセグメントを上へ移動">↑</button>
+          <button onClick={onMoveDown} title="このセグメントを下へ移動">↓</button>
+          <button onClick={onDuplicate} title="このセグメントを複製">複製</button>
+          <button onClick={onMergeNext} title="次の行と結合">結合</button>
           <button className="danger" onClick={onDelete} title="この行を削除">削除</button>
         </div>
       </div>
@@ -197,13 +208,14 @@ export const SegmentRow = memo(function SegmentRow({
 });
 
 function SpeakerPairInput({
-  pair, canDelete, onNameChange, onTextChange, onDelete, onSplitAtCursor, onFocus,
+  pair, canDelete, onNameChange, onTextChange, onDelete, onInsertLineBreak, onSplitAtCursor, onFocus,
 }: {
   pair: SpeakerPair;
   canDelete: boolean;
   onNameChange: (v: string) => void;
   onTextChange: (v: string) => void;
   onDelete: () => void;
+  onInsertLineBreak: (pos: number) => void;
   onSplitAtCursor: (pos: number) => void;
   onFocus: () => void;
 }) {
@@ -226,13 +238,29 @@ function SpeakerPairInput({
         placeholder="セリフ"
         onFocus={onFocus}
         onKeyDown={(e) => {
-          if (e.ctrlKey && e.key === 'Enter') {
+          if (e.altKey && e.key === 'Enter') {
+            e.preventDefault();
+            const pos = textRef.current?.selectionStart ?? 0;
+            onInsertLineBreak(pos);
+          } else if (e.ctrlKey && e.key === 'Enter') {
             e.preventDefault();
             const pos = textRef.current?.selectionStart ?? 0;
             onSplitAtCursor(pos);
           }
         }}
       />
+      <button
+        className="pair-linebreak"
+        onClick={(e) => {
+          e.stopPropagation();
+          const pos = textRef.current?.selectionStart ?? pair.text.length;
+          onInsertLineBreak(pos);
+          window.setTimeout(() => textRef.current?.focus(), 0);
+        }}
+        title="カーソル位置に改行を挿入"
+      >
+        改行
+      </button>
       <button
         className="pair-delete danger"
         onClick={(e) => { e.stopPropagation(); onDelete(); }}

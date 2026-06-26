@@ -238,6 +238,12 @@ input:focus, textarea:focus, select:focus {
   font-size: 11px;
   align-self: stretch;
 }
+.pair-linebreak {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  font-size: 11px;
+  align-self: stretch;
+}
 
 /* Toolbar toggle state */
 .toolbar button.toggle-on { background: #2a4a6a; border-color: #3a5a7a; }
@@ -598,4 +604,24 @@ input:focus, textarea:focus, select:focus {
   padding: 10px;
   font-size: 12px;
   line-height: 2;
+}
+.manual-bot {
+  background: #161616;
+  border: 1px solid #333;
+  border-radius: 4px;
+  padding: 10px;
+}
+.manual-bot form {
+  display: flex;
+  gap: 8px;
+}
+.manual-bot input {
+  flex: 1;
+}
+.manual-bot-answer {
+  margin-top: 10px;
+  color: #ddd;
+  font-size: 13px;
+  line-height: 1.7;
+  white-space: pre-wrap;
 }

@@ -207,6 +207,17 @@ function App() {
     dispatch({ type: 'MERGE_WITH_NEXT', id });
   }, []);
 
+  const handleMove = useCallback((id: string, direction: -1 | 1) => {
+    dispatch({ type: 'MOVE', id, direction });
+    setSelectedSegmentId(id);
+  }, []);
+
+  const handleDuplicate = useCallback((id: string) => {
+    const newId = crypto.randomUUID();
+    dispatch({ type: 'DUPLICATE', id, newId });
+    setSelectedSegmentId(newId);
+  }, []);
+
   const handleSplitAtCursor = useCallback((id: string, charIndex: number) => {
     const entry = entries.find((e) => e.id === id);
     if (!entry) return;
@@ -447,6 +458,8 @@ function App() {
             onInsertAfter={handleInsertAfter}
             onDelete={handleDelete}
             onMergeNext={handleMergeNext}
+            onMove={handleMove}
+            onDuplicate={handleDuplicate}
             onSplitAtCursor={handleSplitAtCursor}
             onSetIn={handleSetIn}
             onSetOut={handleSetOut}

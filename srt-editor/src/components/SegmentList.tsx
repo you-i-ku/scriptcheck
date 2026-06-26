@@ -17,6 +17,8 @@ type Props = {
   onInsertAfter: (id: string | null) => void;
   onDelete: (id: string) => void;
   onMergeNext: (id: string) => void;
+  onMove: (id: string, direction: -1 | 1) => void;
+  onDuplicate: (id: string) => void;
   onSplitAtCursor: (id: string, charIndex: number) => void;
   onSetIn: (id: string) => void;
   onSetOut: (id: string) => void;
@@ -27,6 +29,7 @@ export function SegmentList({
   cpsThreshold, excludeSpeakerTagFromCps,
   onPatch, onJumpTo, onActivate, onInsertAfter,
   onDelete, onMergeNext, onSplitAtCursor, onSetIn, onSetOut,
+  onMove, onDuplicate,
 }: Props) {
   const listRef = useRef<HTMLDivElement>(null);
   const prevSelected = useRef<string | null>(null);
@@ -88,6 +91,9 @@ export function SegmentList({
               onFocus={() => onActivate(e.id)}
               onDelete={() => onDelete(e.id)}
               onMergeNext={() => onMergeNext(e.id)}
+              onMoveUp={() => onMove(e.id, -1)}
+              onMoveDown={() => onMove(e.id, 1)}
+              onDuplicate={() => onDuplicate(e.id)}
               onSplitAtCursor={(pos) => onSplitAtCursor(e.id, pos)}
               onSetInFromCurrent={() => onSetIn(e.id)}
               onSetOutFromCurrent={() => onSetOut(e.id)}
