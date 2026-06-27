@@ -44,6 +44,10 @@ export function serializeSrt(entries: SrtEntry[]): string {
 
 export type SpeakerPair = { name: string; text: string };
 
+function isBareSpeakerLine(line: string): boolean {
+  return /^(不明|話者\d+|speaker\s*\d+|spk\s*\d+)$/i.test(line.trim());
+}
+
 /**
  * テキスト編集用: 話者タグのクリーンアップ(HTMLタグ除去等)はせず、
  * 元の文字を保持したままペアに分解する。
@@ -51,11 +55,15 @@ export type SpeakerPair = { name: string; text: string };
 export function parseSpeakerPairs(text: string): SpeakerPair[] {
   if (text === '') return [{ name: '', text: '' }];
   const pairs: SpeakerPair[] = [];
-  for (const rawLine of text.split('\n')) {
+  const lines = text.split('\n');
+  for (let i = 0; i < lines.length; i += 1) {
+    const rawLine = lines[i];
     let m = rawLine.match(/^（(.+?)）\s*([\s\S]*)$/);
     if (!m) m = rawLine.match(/^\(([^)]+)\)\s*([\s\S]*)$/);
     if (m) {
       pairs.push({ name: m[1], text: m[2] });
+    } else if (pairs.length === 0 && i === 0 && lines.length > 1 && isBareSpeakerLine(rawLine)) {
+      pairs.push({ name: rawLine.trim(), text: '' });
     } else if (pairs.length > 0) {
       // 話者タグで始まらない行 → 直前の話者のセリフに継続(同一話者の複数行)
       const last = pairs[pairs.length - 1];
@@ -76,7 +84,9 @@ export function serializeSpeakerPairs(pairs: SpeakerPair[]): string {
 export function parseSpeakerTags(text: string): CharDialogue[] {
   const result: CharDialogue[] = [];
   const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  for (const rawLine of normalized.split('\n')) {
+  const lines = normalized.split('\n');
+  for (let i = 0; i < lines.length; i += 1) {
+    const rawLine = lines[i];
     const line = rawLine.trim();
     if (!line) {
       if (result.length) {
@@ -89,6 +99,8 @@ export function parseSpeakerTags(text: string): CharDialogue[] {
     if (!m) m = line.match(/^\(([^)]+)\)\s*(.*)$/);
     if (m) {
       result.push({ name: m[1], dialogue: m[2].trim() });
+    } else if (result.length === 0 && i === 0 && lines.length > 1 && isBareSpeakerLine(line)) {
+      result.push({ name: line, dialogue: '' });
     } else if (result.length) {
       const last = result[result.length - 1];
       last.dialogue = last.dialogue ? `${last.dialogue}\n${line}` : line;
