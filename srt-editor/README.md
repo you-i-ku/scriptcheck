@@ -9,7 +9,7 @@
 - WaveSurfer.js による波形表示、クリックでシーク
 - 元ファイルのエンコーディング(utf-8-sig / utf-8 / cp932 / shift_jis)を保持してSRTダウンロード
 - **PDF化**: 親リポの `convert_srt_to_pdf.py` のレイアウトをJS移植、ブラウザ内で縦書き台本PDF生成
-- IndexedDB 自動保存 + セッション復帰
+- IndexedDB 自動保存 + 明示的な途中保存 / セッション復帰
 
 ## 開発
 

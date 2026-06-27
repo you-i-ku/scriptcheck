@@ -10,7 +10,7 @@ import { FindReplaceDialog } from './components/FindReplaceDialog';
 import { SettingsDialog } from './components/SettingsDialog';
 import { decodeSrt, encodeSrt } from './lib/encoding';
 import { parseSrt, serializeSrt } from './lib/srt';
-import { saveSession, loadLatestSession, deleteSession } from './lib/storage';
+import { saveSession, loadLatestSession, loadSession, deleteSession } from './lib/storage';
 import {
   editorReducer, INITIAL_HISTORY, canUndo, canRedo,
   type EditorState,
@@ -83,6 +83,7 @@ function App() {
 
   // Debounced auto-save
   useEffect(() => {
+    if (pendingRestore) return;
     if (!srtName || entries.length === 0 || !sessionIdRef.current) return;
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     setSaveStatus('…保存中');
@@ -94,13 +95,15 @@ function App() {
         encoding,
         entries,
       })
-        .then(() => setSaveStatus('保存済'))
+        .then(() => {
+          setSaveStatus('保存済');
+        })
         .catch(() => setSaveStatus('保存失敗'));
     }, 800);
     return () => {
       if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     };
-  }, [entries, encoding, srtName, videoName]);
+  }, [entries, encoding, srtName, videoName, pendingRestore]);
 
   // QC issues
   const issues = useMemo(() => findIssues(entries, qcOptions), [entries, qcOptions]);
@@ -134,11 +137,57 @@ function App() {
     setActiveSegmentId(first);
     setSelectedSegmentId(first);
 
-    const latest = await loadLatestSession();
-    if (latest && latest.srtFilename === file.name && latest.entries.length > 0) {
-      setPendingRestore(latest);
+    const saved = await loadSession(file.name);
+    if (saved && saved.entries.length > 0) {
+      setPendingRestore(saved);
     }
   }, []);
+
+  const handleSaveSession = useCallback(async () => {
+    if (!srtName || entries.length === 0) return;
+    const id = sessionIdRef.current ?? srtName;
+    sessionIdRef.current = id;
+    if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
+    setSaveStatus('…保存中');
+    try {
+      await saveSession({
+        id,
+        srtFilename: srtName,
+        videoFilename: videoName ?? undefined,
+        encoding,
+        entries,
+      });
+      setSaveStatus('手動保存済');
+    } catch {
+      setSaveStatus('保存失敗');
+    }
+  }, [entries, encoding, srtName, videoName]);
+
+  const restoreSessionSnapshot = useCallback((snapshot: SessionSnapshot) => {
+    dispatch({
+      type: 'LOAD',
+      payload: {
+        entries: snapshot.entries,
+        encoding: snapshot.encoding,
+        srtName: snapshot.srtFilename,
+      },
+    });
+    sessionIdRef.current = snapshot.id;
+    setActiveSegmentId(snapshot.entries[0]?.id ?? null);
+    setSelectedSegmentId(snapshot.entries[0]?.id ?? null);
+    setPendingRestore(null);
+    setSaveStatus('途中復帰済');
+  }, []);
+
+  const handleRestoreSession = useCallback(async () => {
+    const currentId = sessionIdRef.current ?? srtName;
+    const saved = currentId ? await loadSession(currentId) : await loadLatestSession();
+    if (!saved || saved.entries.length === 0) {
+      setSaveStatus('復帰データなし');
+      return;
+    }
+    restoreSessionSnapshot(saved);
+  }, [restoreSessionSnapshot, srtName]);
 
   const handlePatch = useCallback(
     (id: string, patch: Partial<SessionSnapshot['entries'][number]>, coalesceKey?: string) => {
@@ -299,16 +348,8 @@ function App() {
 
   const handleRestoreAccept = useCallback(() => {
     if (!pendingRestore) return;
-    dispatch({
-      type: 'LOAD',
-      payload: {
-        entries: pendingRestore.entries,
-        encoding: pendingRestore.encoding,
-        srtName: pendingRestore.srtFilename,
-      },
-    });
-    setPendingRestore(null);
-  }, [pendingRestore]);
+    restoreSessionSnapshot(pendingRestore);
+  }, [pendingRestore, restoreSessionSnapshot]);
 
   const handleRestoreReject = useCallback(async () => {
     if (!pendingRestore) return;
@@ -388,6 +429,8 @@ function App() {
         silenceBusy={silenceBusy}
         onLoadVideo={handleLoadVideo}
         onLoadSrt={handleLoadSrt}
+        onSaveSession={handleSaveSession}
+        onRestoreSession={handleRestoreSession}
         onExportSrt={handleExportSrt}
         onExportPdf={handleExportPdf}
         onUndo={() => dispatch({ type: 'UNDO' })}

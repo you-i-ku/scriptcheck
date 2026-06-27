@@ -12,6 +12,8 @@ type Props = {
   silenceBusy?: boolean;
   onLoadVideo: (file: File) => void;
   onLoadSrt: (file: File) => void;
+  onSaveSession: () => void;
+  onRestoreSession: () => void;
   onExportSrt: () => void;
   onExportPdf: () => void;
   onUndo: () => void;
@@ -50,6 +52,15 @@ export function Toolbar(p: Props) {
       <div className="tb-group">
         <button onClick={p.onUndo} disabled={!p.canUndo} title="元に戻す (Ctrl+Z)">↶</button>
         <button onClick={p.onRedo} disabled={!p.canRedo} title="やり直す (Ctrl+Y)">↷</button>
+      </div>
+
+      <div className="tb-group">
+        <button onClick={p.onSaveSession} disabled={!p.hasEntries} title="現在の編集状態を途中保存">
+          途中保存
+        </button>
+        <button onClick={p.onRestoreSession} title="保存済みの途中編集を復帰">
+          途中復帰
+        </button>
       </div>
 
       <div className="tb-group">
