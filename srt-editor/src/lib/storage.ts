@@ -31,11 +31,14 @@ export async function saveSession(snapshot: Omit<SessionSnapshot, 'savedAt'>) {
   await db.put('sessions', { ...snapshot, savedAt: Date.now() });
 }
 
-export async function loadLatestSession(): Promise<SessionSnapshot | null> {
+export async function loadLatestSession(options?: { idPrefix?: string }): Promise<SessionSnapshot | null> {
   const db = await getDb();
   const all = await db.getAll('sessions');
-  if (all.length === 0) return null;
-  return all.sort((a, b) => b.savedAt - a.savedAt)[0];
+  const candidates = options?.idPrefix
+    ? all.filter((session) => session.id.startsWith(options.idPrefix!))
+    : all;
+  if (candidates.length === 0) return null;
+  return candidates.sort((a, b) => b.savedAt - a.savedAt)[0];
 }
 
 export async function loadSession(id: string): Promise<SessionSnapshot | null> {

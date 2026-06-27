@@ -24,6 +24,11 @@ import {
 import type { SessionSnapshot } from './types';
 
 const SETTINGS_KEY = 'srt-editor:qc-options';
+const MANUAL_SESSION_ID_PREFIX = 'manual:';
+
+function manualSessionId(id: string) {
+  return `${MANUAL_SESSION_ID_PREFIX}${id}`;
+}
 
 function loadSettings(): QcOptions {
   try {
@@ -64,6 +69,7 @@ function App() {
   const videoRef = useRef<VideoHandle>(null);
   const sessionIdRef = useRef<string | null>(null);
   const saveTimerRef = useRef<number | null>(null);
+  const skipNextAutoSaveRef = useRef(false);
 
   // Video element tracking
   useEffect(() => {
@@ -85,6 +91,10 @@ function App() {
   useEffect(() => {
     if (pendingRestore) return;
     if (!srtName || entries.length === 0 || !sessionIdRef.current) return;
+    if (skipNextAutoSaveRef.current) {
+      skipNextAutoSaveRef.current = false;
+      return;
+    }
     if (saveTimerRef.current) window.clearTimeout(saveTimerRef.current);
     setSaveStatus('…保存中');
     saveTimerRef.current = window.setTimeout(() => {
@@ -151,7 +161,7 @@ function App() {
     setSaveStatus('…保存中');
     try {
       await saveSession({
-        id,
+        id: manualSessionId(id),
         srtFilename: srtName,
         videoFilename: videoName ?? undefined,
         encoding,
@@ -164,6 +174,7 @@ function App() {
   }, [entries, encoding, srtName, videoName]);
 
   const restoreSessionSnapshot = useCallback((snapshot: SessionSnapshot) => {
+    skipNextAutoSaveRef.current = true;
     dispatch({
       type: 'LOAD',
       payload: {
@@ -172,7 +183,7 @@ function App() {
         srtName: snapshot.srtFilename,
       },
     });
-    sessionIdRef.current = snapshot.id;
+    sessionIdRef.current = snapshot.srtFilename;
     setActiveSegmentId(snapshot.entries[0]?.id ?? null);
     setSelectedSegmentId(snapshot.entries[0]?.id ?? null);
     setPendingRestore(null);
@@ -181,7 +192,9 @@ function App() {
 
   const handleRestoreSession = useCallback(async () => {
     const currentId = sessionIdRef.current ?? srtName;
-    const saved = currentId ? await loadSession(currentId) : await loadLatestSession();
+    const saved = currentId
+      ? await loadSession(manualSessionId(currentId))
+      : await loadLatestSession({ idPrefix: MANUAL_SESSION_ID_PREFIX });
     if (!saved || saved.entries.length === 0) {
       setSaveStatus('復帰データなし');
       return;
