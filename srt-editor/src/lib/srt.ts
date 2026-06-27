@@ -84,7 +84,7 @@ export function parseSpeakerTags(text: string): CharDialogue[] {
       result.push({ name: m[1], dialogue: m[2].trim() });
     } else if (result.length) {
       const last = result[result.length - 1];
-      last.dialogue = (last.dialogue + ' ' + line).trim();
+      last.dialogue = last.dialogue ? `${last.dialogue}\n${line}` : line;
     } else {
       result.push({ name: '', dialogue: line });
     }

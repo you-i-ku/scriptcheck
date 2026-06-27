@@ -15,6 +15,12 @@ export function effectiveLen(text: string): number {
 
 export function smartSplit(text: string, maxChars: number): string[] {
   if (!text) return [];
+  if (text.includes('\n')) {
+    return text.split('\n').flatMap((line) => {
+      if (!line) return [''];
+      return smartSplit(line, maxChars);
+    });
+  }
   if (effectiveLen(text) <= maxChars) return [text];
 
   const chunks = parser.parse(text);
