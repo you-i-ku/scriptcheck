@@ -15,8 +15,8 @@ export function effectiveLen(text: string): number {
 
 export function smartSplit(text: string, maxChars: number): string[] {
   if (!text) return [];
-  if (text.includes('\n')) {
-    return text.split('\n').flatMap((line) => {
+  if (/\r?\n/.test(text)) {
+    return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n').split('\n').flatMap((line) => {
       if (!line) return [''];
       return smartSplit(line, maxChars);
     });

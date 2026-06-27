@@ -75,9 +75,16 @@ export function serializeSpeakerPairs(pairs: SpeakerPair[]): string {
 
 export function parseSpeakerTags(text: string): CharDialogue[] {
   const result: CharDialogue[] = [];
-  for (const rawLine of text.split('\n')) {
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  for (const rawLine of normalized.split('\n')) {
     const line = rawLine.trim();
-    if (!line) continue;
+    if (!line) {
+      if (result.length) {
+        const last = result[result.length - 1];
+        last.dialogue = last.dialogue ? `${last.dialogue}\n` : '\n';
+      }
+      continue;
+    }
     let m = line.match(/^（(.+?)）\s*(.*)$/);
     if (!m) m = line.match(/^\(([^)]+)\)\s*(.*)$/);
     if (m) {
