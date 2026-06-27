@@ -19,6 +19,15 @@ npm run dev      # http://localhost:5173
 npm run build    # dist/ に出力
 ```
 
+## 説明書bot (Gemini)
+
+Vercel では `GEMINI_API_KEY` を Environment Variables に設定すると、ヘルプ内の説明書botが `docs/user-guide.md` を参照して回答します。
+
+- `GEMINI_API_KEY`: 必須。サーバレス関数だけが読む。`VITE_` prefix は付けない。
+- `GEMINI_MODEL`: 任意。未設定時は `gemini-2.5-flash`。
+
+Gemini APIが未設定またはエラーの場合は、アプリ内のローカルFAQにフォールバックします。
+
 ## 技術スタック
 
 | 領域 | 採用 |

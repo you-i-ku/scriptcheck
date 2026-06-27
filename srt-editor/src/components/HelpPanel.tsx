@@ -50,6 +50,36 @@ function answerManualBot(q: string): string {
 export function HelpPanel({ onClose }: Props) {
   const [botQuestion, setBotQuestion] = useState('');
   const [botAnswer, setBotAnswer] = useState(answerManualBot(''));
+  const [botBusy, setBotBusy] = useState(false);
+  const [botProvider, setBotProvider] = useState<'local' | 'gemini'>('local');
+
+  async function askBot() {
+    const question = botQuestion.trim();
+    if (!question) {
+      setBotProvider('local');
+      setBotAnswer(answerManualBot(''));
+      return;
+    }
+
+    setBotBusy(true);
+    try {
+      const r = await fetch('/api/userguide-bot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const data = (await r.json()) as { answer?: string };
+      if (!data.answer) throw new Error('empty answer');
+      setBotProvider('gemini');
+      setBotAnswer(data.answer);
+    } catch {
+      setBotProvider('local');
+      setBotAnswer(answerManualBot(question));
+    } finally {
+      setBotBusy(false);
+    }
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -97,7 +127,7 @@ export function HelpPanel({ onClose }: Props) {
             <form
               onSubmit={(e) => {
                 e.preventDefault();
-                setBotAnswer(answerManualBot(botQuestion));
+                void askBot();
               }}
             >
               <input
@@ -105,8 +135,13 @@ export function HelpPanel({ onClose }: Props) {
                 onChange={(e) => setBotQuestion(e.target.value)}
                 placeholder="例: セリフ内で改行したい"
               />
-              <button className="primary" type="submit">聞く</button>
+              <button className="primary" type="submit" disabled={botBusy}>
+                {botBusy ? '確認中…' : '聞く'}
+              </button>
             </form>
+            <div className="manual-bot-source">
+              {botProvider === 'gemini' ? 'Gemini + user guide' : 'local fallback'}
+            </div>
             <div className="manual-bot-answer">{botAnswer}</div>
           </div>
         </div>

@@ -625,3 +625,8 @@ input:focus, textarea:focus, select:focus {
   line-height: 1.7;
   white-space: pre-wrap;
 }
+.manual-bot-source {
+  margin-top: 8px;
+  color: #888;
+  font-size: 11px;
+}
