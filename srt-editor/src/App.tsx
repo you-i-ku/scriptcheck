@@ -25,6 +25,7 @@ import type { SessionSnapshot } from './types';
 
 const SETTINGS_KEY = 'srt-editor:qc-options';
 const MANUAL_SESSION_ID_PREFIX = 'manual:';
+const MIN_SEGMENT_DURATION_MS = 100;
 
 function manualSessionId(id: string) {
   return `${MANUAL_SESSION_ID_PREFIX}${id}`;
@@ -220,6 +221,11 @@ function App() {
     videoRef.current?.seek(ms);
   }, []);
 
+  const getCurrentVideoMs = useCallback(
+    () => videoRef.current?.getCurrentMs() ?? currentMs,
+    [currentMs],
+  );
+
   const handleInsertAfter = useCallback((afterId: string | null) => {
     let startMs: number;
     let endMs: number;
@@ -245,11 +251,11 @@ function App() {
 
   const handleInsertAtCurrent = useCallback(() => {
     const newId = crypto.randomUUID();
-    const startMs = currentMs;
+    const startMs = getCurrentVideoMs();
     const endMs = startMs + 1500;
     dispatch({ type: 'INSERT_AT_TIME', startMs, endMs, newId });
     setSelectedSegmentId(newId);
-  }, [currentMs]);
+  }, [getCurrentVideoMs]);
 
   const handleInsertAtRegion = useCallback((startMs: number, endMs: number) => {
     const newId = crypto.randomUUID();
@@ -284,23 +290,40 @@ function App() {
     const entry = entries.find((e) => e.id === id);
     if (!entry) return;
     const mid = Math.floor((entry.startMs + entry.endMs) / 2);
-    const timeMs = currentMs > entry.startMs && currentMs < entry.endMs ? currentMs : mid;
+    const currentVideoMs = getCurrentVideoMs();
+    const timeMs = currentVideoMs > entry.startMs && currentVideoMs < entry.endMs
+      ? currentVideoMs
+      : mid;
     dispatch({ type: 'SPLIT', id, charIndex, timeMs, newId: crypto.randomUUID() });
-  }, [entries, currentMs]);
+  }, [entries, getCurrentVideoMs]);
 
   const handleSetIn = useCallback((id: string) => {
     const entry = entries.find((e) => e.id === id);
     if (!entry) return;
-    const ms = Math.min(currentMs, entry.endMs - 100);
-    dispatch({ type: 'PATCH_ENTRY', id, patch: { startMs: Math.max(0, ms) } });
-  }, [entries, currentMs]);
+    const startMs = Math.max(0, getCurrentVideoMs());
+    dispatch({
+      type: 'PATCH_ENTRY',
+      id,
+      patch: {
+        startMs,
+        endMs: Math.max(entry.endMs, startMs + MIN_SEGMENT_DURATION_MS),
+      },
+    });
+  }, [entries, getCurrentVideoMs]);
 
   const handleSetOut = useCallback((id: string) => {
     const entry = entries.find((e) => e.id === id);
     if (!entry) return;
-    const ms = Math.max(currentMs, entry.startMs + 100);
-    dispatch({ type: 'PATCH_ENTRY', id, patch: { endMs: ms } });
-  }, [entries, currentMs]);
+    const endMs = Math.max(MIN_SEGMENT_DURATION_MS, getCurrentVideoMs());
+    dispatch({
+      type: 'PATCH_ENTRY',
+      id,
+      patch: {
+        startMs: Math.min(entry.startMs, endMs - MIN_SEGMENT_DURATION_MS),
+        endMs,
+      },
+    });
+  }, [entries, getCurrentVideoMs]);
 
   const handleExportSrt = useCallback(() => {
     if (!srtName) return;
@@ -391,9 +414,9 @@ function App() {
         e.preventDefault();
         videoRef.current?.togglePlay();
       } else if (e.key === 'j' || e.key === 'J') {
-        videoRef.current?.seek(Math.max(0, currentMs - 2000));
+        videoRef.current?.seek(Math.max(0, getCurrentVideoMs() - 2000));
       } else if (e.key === 'l' || e.key === 'L') {
-        videoRef.current?.seek(currentMs + 2000);
+        videoRef.current?.seek(getCurrentVideoMs() + 2000);
       } else if (e.key === '[') {
         const sorted = [...entries].sort((a, b) => a.startMs - b.startMs);
         const anchorId = selectedSegmentId ?? activeSegmentId;
@@ -418,7 +441,7 @@ function App() {
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [activeSegmentId, selectedSegmentId, entries, currentMs, handleSetIn, handleSetOut, handleInsertAtCurrent]);
+  }, [activeSegmentId, selectedSegmentId, entries, getCurrentVideoMs, handleSetIn, handleSetOut, handleInsertAtCurrent]);
 
   // Settings persistence
   useEffect(() => { saveSettings(qcOptions); }, [qcOptions]);

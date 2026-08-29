@@ -5,6 +5,7 @@ export type VideoHandle = {
   play: () => void;
   pause: () => void;
   togglePlay: () => void;
+  getCurrentMs: () => number | null;
   getElement: () => HTMLVideoElement | null;
 };
 
@@ -30,6 +31,12 @@ export const VideoPlayer = forwardRef<VideoHandle, Props>(function VideoPlayer(
       if (!v) return;
       if (v.paused) void v.play();
       else v.pause();
+    },
+    getCurrentMs: () => {
+      const seconds = videoRef.current?.currentTime;
+      return seconds == null || !Number.isFinite(seconds)
+        ? null
+        : Math.round(seconds * 1000);
     },
     getElement: () => videoRef.current,
   }));
